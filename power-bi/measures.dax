@@ -1,0 +1,71 @@
+DEFINE
+    MEASURE 'Backtests'[Raw Backtests] =
+        COALESCE(COUNTROWS(Backtests), 0)
+
+    MEASURE 'Backtests'[Eligible Backtests] =
+        CALCULATE(
+            [Raw Backtests],
+            Backtests[is_eligible] = 1
+        )
+
+    MEASURE 'Backtests'[Profitable Backtests] =
+        CALCULATE(
+            [Eligible Backtests],
+            Backtests[net_profit] > 0
+        )
+
+    MEASURE 'Backtests'[Profitable Settings %] =
+        DIVIDE([Profitable Backtests], [Eligible Backtests])
+
+    MEASURE 'Backtests'[Median RF (Profitable)] =
+        CALCULATE(
+            MEDIAN(Backtests[recovery_factor]),
+            Backtests[is_eligible] = 1,
+            Backtests[net_profit] > 0
+        )
+
+    MEASURE 'Backtests'[Mean Pair Profitable Share %] =
+        AVERAGEX(
+            VALUES(Pairs[pair_code]),
+            [Profitable Settings %]
+        )
+
+    MEASURE 'Backtests'[Pair Count] =
+        COALESCE(COUNTROWS(Pairs), 0)
+
+    MEASURE 'Backtests'[Median Pair Profitable Share %] =
+        MEDIANX(
+            FILTER(
+                VALUES(Pairs[pair_code]),
+                NOT ISBLANK([Profitable Settings %])
+            ),
+            [Profitable Settings %]
+        )
+
+    MEASURE 'Backtests'[Average PF (Profitable)] =
+        CALCULATE(
+            AVERAGE(Backtests[profit_factor]),
+            Backtests[is_eligible] = 1,
+            Backtests[net_profit] > 0
+        )
+
+    MEASURE 'Backtests'[Average Equity DD % (Profitable)] =
+        CALCULATE(
+            AVERAGE(Backtests[equity_drawdown_pct]),
+            Backtests[is_eligible] = 1,
+            Backtests[net_profit] > 0
+        ) / 100
+
+EVALUATE
+    SUMMARIZECOLUMNS(
+        "Raw Backtests", [Raw Backtests],
+        "Eligible Backtests", [Eligible Backtests],
+        "Profitable Backtests", [Profitable Backtests],
+        "Profitable Settings %", [Profitable Settings %],
+        "Median RF (Profitable)", [Median RF (Profitable)],
+        "Mean Pair Profitable Share %", [Mean Pair Profitable Share %],
+        "Pair Count", [Pair Count],
+        "Median Pair Profitable Share %", [Median Pair Profitable Share %],
+        "Average PF (Profitable)", [Average PF (Profitable)],
+        "Average Equity DD % (Profitable)", [Average Equity DD % (Profitable)]
+    )
